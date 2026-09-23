@@ -20,14 +20,29 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Unzip project
+        run: |
+          mkdir -p _proj
+          for z in $(find . -maxdepth 3 -name "*.zip" -not -path "./_proj/*"); do
+            unzip -oq "$z" -d _proj
+          done
+          S=$(find _proj -name settings.gradle | head -1)
+          if [ -z "$S" ]; then
+            echo "settings.gradle not found: upload the project zip to the repo"
+            exit 1
+          fi
+          echo "PROJECT_DIR=$(dirname "$S")" >> "$GITHUB_ENV"
+
       - name: Build release (unsigned) and debug
-        run: gradle assembleRelease assembleDebug --no-daemon --stacktrace
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleRelease assembleDebug --no-daemon --stacktrace
 
       - name: Collect APKs
         run: |
           mkdir -p out
-          cp app/build/outputs/apk/release/app-release-unsigned.apk out/template-unsigned.apk
-          cp app/build/outputs/apk/debug/app-debug.apk out/template-debug-test.apk
+          cp "$PROJECT_DIR/app/build/outputs/apk/release/app-release-unsigned.apk" out/template-unsigned.apk
+          cp "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk" out/template-debug-test.apk
           ls -l out
 
       - uses: actions/upload-artifact@v4
