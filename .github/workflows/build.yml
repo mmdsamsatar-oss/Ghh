@@ -1,0 +1,37 @@
+name: Build Template APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build release (unsigned) and debug
+        run: gradle assembleRelease assembleDebug --no-daemon --stacktrace
+
+      - name: Collect APKs
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/release/app-release-unsigned.apk out/template-unsigned.apk
+          cp app/build/outputs/apk/debug/app-debug.apk out/template-debug-test.apk
+          ls -l out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: template-apk
+          path: out/*.apk
+          if-no-files-found: error
